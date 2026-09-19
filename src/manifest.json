@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "Sci-Hub UA Fix",
+  "version": "1.0.0",
+  "description": "Strips the 'Zotero/x.y.z' User-Agent suffix for Sci-Hub hosts, which Cloudflare otherwise answers with HTTP 403. Makes Sci-Hub PDF resolvers work again on Zotero 9.",
+  "author": "TheGadflyAndMontalleni",
+  "homepage_url": "https://github.com/TheGadflyAndMontalleni/Zotero_download_from_scihub",
+  "applications": {
+    "zotero": {
+      "id": "scihub-ua-fix@thegadflyandmontalleni.github.io",
+      "strict_min_version": "6.999",
+      "strict_max_version": "10.*"
+    }
+  }
+}

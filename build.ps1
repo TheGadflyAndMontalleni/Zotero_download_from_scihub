@@ -47,6 +47,13 @@ try {
             $entryName,
             [System.IO.Compression.CompressionLevel]::Optimal
         )
+        # Deterministic builds. ZipArchive stamps every entry with the current
+        # time by default, so two builds of identical input produced different
+        # bytes - which makes update.json's update_hash impossible to keep in
+        # sync and breaks reproducible builds.
+        $entry.LastWriteTime = [System.DateTimeOffset]::new(
+            2026, 1, 1, 0, 0, 0, [System.TimeSpan]::Zero
+        )
         $es = $entry.Open()
         try {
             $fs = [System.IO.File]::OpenRead($f.FullName)
@@ -82,3 +89,38 @@ finally {
 Write-Host ("`nOK -> {0} ({1} bytes)" -f $outFile, (Get-Item $outFile).Length)
 $hash = (Get-FileHash $outFile -Algorithm SHA256).Hash.ToLower()
 Write-Host ("sha256:{0}" -f $hash)
+
+# --- Cross-check update.json against the manifest -----------------------
+# The add-on id and version in update.json must match the manifest exactly,
+# or Zotero's update check silently never matches. The hash must also match
+# the archive we just built.
+$updateFile = Join-Path $root 'update.json'
+if (Test-Path $updateFile) {
+    Write-Host "`nChecking update.json ..."
+    $update = Get-Content $updateFile -Raw | ConvertFrom-Json
+    $ids = @($update.addons.PSObject.Properties.Name)
+
+    if ($ids.Count -ne 1 -or $ids[0] -ne $manifest.applications.zotero.id) {
+        throw ("update.json add-on id mismatch.`n  manifest : " +
+               $manifest.applications.zotero.id + "`n  update   : " + ($ids -join ', '))
+    }
+    Write-Host ("  id matches manifest : " + $ids[0])
+
+    $latest = $update.addons.$($ids[0]).updates | Select-Object -First 1
+    if ($latest.version -ne $manifest.version) {
+        throw ("update.json version mismatch.`n  manifest : " +
+               $manifest.version + "`n  update   : " + $latest.version)
+    }
+    Write-Host ("  version matches     : " + $latest.version)
+
+    $declared = $latest.update_hash
+    if ($declared -and $declared -ne "sha256:$hash") {
+        throw ("update.json update_hash is stale.`n  built : sha256:" + $hash +
+               "`n  update: " + $declared +
+               "`n  Re-upload the .xpi, then update the hash.")
+    }
+    Write-Host ("  update_hash matches : " + $declared)
+}
+else {
+    Write-Host "`n(no update.json to check)"
+}

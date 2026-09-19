@@ -65,7 +65,9 @@ is needed at all: a one-off console command would be forgotten on the next resta
 
 ## Installation
 
-1. Download `scihub-ua-fix.xpi` from this repository.
+1. Download `scihub-ua-fix.xpi` from the
+   [latest release](https://github.com/TheGadflyAndMontalleni/Zotero_download_from_scihub/releases/latest)
+   (a copy also sits at the repository root).
 2. In Zotero: **Tools → Add-ons** (工具 → 插件)
 3. Click the gear icon ⚙ → **Install Add-on From File...**
 4. Select `scihub-ua-fix.xpi`

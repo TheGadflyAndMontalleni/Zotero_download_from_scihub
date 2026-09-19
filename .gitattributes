@@ -1,0 +1,11 @@
+# Normalise line endings in the repository to LF, so the working tree stops
+# warning about CRLF on Windows and the committed bytes stay identical for
+# everyone.
+* text=auto eol=lf
+
+# The built plugin is a binary archive - never touch its bytes.
+*.xpi binary
+
+# Keep the PowerShell script readable on Windows without changing what is
+# committed.
+*.ps1 text eol=lf

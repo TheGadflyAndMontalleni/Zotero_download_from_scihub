@@ -154,6 +154,75 @@ Both files must sit at the **root** of the archive, not inside a folder.
 `registerPlainUAHost` has existed since Zotero 7. If a future version renames it, the
 plugin logs a message and gives up quietly instead of breaking anything.
 
+Confirmed loaded and active on Zotero **9.0.6**, as recorded by Zotero itself:
+
+```json
+{ "id": "scihub-ua-fix@thegadflyandmontalleni.github.io",
+  "version": "1.0.1", "active": true,
+  "appDisabled": false, "userDisabled": false,
+  "targetApplications": [{ "id": "zotero@zotero.org",
+                           "minVersion": "6.999", "maxVersion": "99.*" }] }
+```
+
+---
+
+## Troubleshooting
+
+### "This add-on is not compatible with this version of Zotero"
+
+The version range in the manifest is checked against `zotero@zotero.org`. The two fields
+that matter:
+
+- `applications.zotero.strict_max_version` — must cover your Zotero version.
+  `99.*` is the safest choice, and is what several widely-used plugins ship.
+- `applications.zotero.strict_min_version` — `6.999` is the conventional floor.
+
+A plugin can also be **installed but silently disabled**. Zotero records
+`appDisabled: true` when the range does not match, and the add-on manager grays it out
+without a prominent error. To see what Zotero actually thinks of a plugin, open
+**Tools → Developer → Run JavaScript** and run:
+
+```js
+const { AddonManager } = ChromeUtils.importESModule(
+  "resource://gre/modules/AddonManager.sys.mjs"
+);
+const addon = await AddonManager.getAddonByID("scihub-ua-fix@thegadflyandmontalleni.github.io");
+return addon
+  ? `${addon.version}  active=${addon.isActive}  appDisabled=${addon.appDisabled}`
+  : "not installed";
+```
+
+On the machine this was developed against, `scipdf` (`maxVersion: "7.*"`) and
+`zoteroshortdoi` (`maxVersion: "7.0.*"`) were both **installed but `appDisabled: true`**
+on Zotero 9.0.6, while `ccfinfo`, `zoterostyle`, `better-bibtex` and `pdf2zh` (`10.*`)
+all loaded fine.
+
+### Building the `.xpi` on Windows
+
+Do **not** use `[System.IO.Compression.ZipFile]::CreateFromDirectory()`. On Windows it
+writes ZIP entry names with backslashes:
+
+```
+content\icons\icon.svg      <- violates the ZIP spec
+```
+
+Readers that follow the spec cannot find the nested files at all, so the archive looks
+corrupt. `build.ps1` adds entries one at a time with normalised forward-slash names, and
+fails the build if any backslash survives.
+
+Two more things to get right:
+
+- `manifest.json` must be at the archive **root**, not inside a folder.
+- `.xpi` is just a zip — no signature is required. `signedState: 0` is normal for
+  side-loaded plugins.
+
+### The plugin loads but PDFs still 403
+
+Check the order of the two fixes. The plugin only removes the 403; the resolvers must
+*also* be registered with `"automatic": true`, or Zotero's automatic path filters them
+out before any request is made. See
+[Configuration](#configuration-required--the-plugin-alone-is-not-enough) above.
+
 ---
 
 ## Disclaimer
